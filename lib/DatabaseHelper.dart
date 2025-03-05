@@ -49,7 +49,15 @@ class DatabaseHelper {
     '''
     );
 
+    await _prepopulateFolders(db);
     await _prepopulateCards(db);
+  }
+
+  Future<void> _prepopulateFolders(Database db) async {
+    List<String> folders = ['Hearts', 'Spades', 'Diamonds', 'Clubs'];
+    for (String folder in folders) {
+      await db.insert('Folders', {'name': folder, 'description': ''});
+    }
   }
 
   Future<void> _prepopulateCards(Database db) async {
@@ -67,5 +75,33 @@ class DatabaseHelper {
         });
       }
     }
+  }
+
+  Future<void> insertCard(String folderName, String cardName, String imageUrl) async {
+    final db = await database;
+    final List<Map<String, dynamic>> folderMaps = await db.query('Folders', where: 'name = ?', whereArgs: [folderName]);
+    if (folderMaps.isNotEmpty) {
+      final folderId = folderMaps.first['id'];
+      await db.insert(
+        'Cards',
+        {'name': cardName, 'suit': folderName, 'imageUrl': imageUrl, 'folderId': folderId},
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getCards(String folderName) async {
+    final db = await database;
+    final List<Map<String, dynamic>> folderMaps = await db.query('Folders', where: 'name = ?', whereArgs: [folderName]);
+    if (folderMaps.isNotEmpty) {
+      final folderId = folderMaps.first['id'];
+      return await db.query('Cards', where: 'folderId = ?', whereArgs: [folderId]);
+    }
+    return [];
+  }
+
+  Future<void> deleteCard(int id) async {
+    final db = await database;
+    await db.delete('Cards', where: 'id = ?', whereArgs: [id]);
   }
 }
