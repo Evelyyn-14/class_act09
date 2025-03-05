@@ -124,6 +124,11 @@ class _CardsScreenState extends State<CardsScreen> {
     }
   }
 
+  void _deleteCard(int id) async {
+    await _dbHelper.deleteCard(id);
+    _loadCards();
+  }
+
   void _showDialog(String title, String message) {
     showDialog(
       context: context,
@@ -179,6 +184,8 @@ class _CardsScreenState extends State<CardsScreen> {
                   onSelected: (value) {
                     if (value == 'add') {
                       _addCard();
+                    } else if (value == 'delete') {
+                      _deleteCard(_cards[index]['id']);
                     }
                   },
                 ),
