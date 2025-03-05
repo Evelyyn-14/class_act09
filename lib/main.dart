@@ -26,6 +26,23 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  final DatabaseHelper _dbHelper = DatabaseHelper();
+  List<String> folders = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFolders();
+  }
+
+  void _loadFolders() async {
+    final db = await _dbHelper.database;
+    final List<Map<String, dynamic>> folderMaps = await db.query('Folders');
+    setState(() {
+      folders = folderMaps.map((folder) => folder['name'] as String).toList();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -33,14 +50,16 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: FoldersScreen(),
+        child: FoldersScreen(folders: folders),
       ),
     );
   }
 }
 
 class FoldersScreen extends StatelessWidget {
-  final List<String> folders = ['Hearts', 'Spades', 'Diamonds', 'Clubs'];
+  final List<String> folders;
+
+  FoldersScreen({required this.folders});
 
   @override
   Widget build(BuildContext context) {
@@ -75,19 +94,34 @@ class CardsScreen extends StatefulWidget {
 }
 
 class _CardsScreenState extends State<CardsScreen> {
-  final List<String> _cards = [];
+  final DatabaseHelper _dbHelper = DatabaseHelper();
+  List<Map<String, dynamic>> _cards = [];
 
-  void _addCard() {
+  @override
+  void initState() {
+    super.initState();
+    _loadCards();
+  }
+
+  void _loadCards() async {
+    final cards = await _dbHelper.getCards(widget.folderName);
     setState(() {
-      if (_cards.length >= 6) {
-        _showDialog("Error", "This folder can only hold 6 cards.");
-      } else {
-        _cards.add("Card ${_cards.length + 1}");
-        if (_cards.length < 3) {
-          _showDialog("Warning", "You need at least 3 cards in this folder.");
-        }
-      }
+      _cards = cards;
     });
+  }
+
+  void _addCard() async {
+    if (_cards.length >= 6) {
+      _showDialog("Error", "This folder can only hold 6 cards.");
+    } else {
+      final cardName = "Card ${_cards.length + 1}";
+      final imageUrl = 'assets/images/${cardName}_of_${widget.folderName}.png';
+      await _dbHelper.insertCard(widget.folderName, cardName, imageUrl);
+      _loadCards();
+      if (_cards.length < 3) {
+        _showDialog("Warning", "You need at least 3 cards in this folder.");
+      }
+    }
   }
 
   void _showDialog(String title, String message) {
@@ -124,9 +158,9 @@ class _CardsScreenState extends State<CardsScreen> {
         itemBuilder: (context, index) {
           return Card(
             child: GridTile(
-              child: Icon(Icons.image),
+              child: Image.network(_cards[index]['imageUrl']),
               footer: GridTileBar(
-                title: Text('Card $index', style: TextStyle(color: Colors.black)),
+                title: Text(_cards[index]['name'], style: TextStyle(color: Colors.black)),
                 trailing: PopupMenuButton(
                   itemBuilder: (context) => [
                     PopupMenuItem(
@@ -143,6 +177,9 @@ class _CardsScreenState extends State<CardsScreen> {
                     ),
                   ],
                   onSelected: (value) {
+                    if (value == 'add') {
+                      _addCard();
+                    }
                   },
                 ),
               ),
