@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -64,22 +64,62 @@ class FoldersScreen extends StatelessWidget {
   }
 }
 
-class CardsScreen extends StatelessWidget {
+class CardsScreen extends StatefulWidget {
   final String folderName;
 
-  CardsScreen({required this.folderName});
+  const CardsScreen({super.key, required this.folderName});
+
+  @override
+  State<CardsScreen> createState() => _CardsScreenState();
+}
+
+class _CardsScreenState extends State<CardsScreen> {
+  final List<String> _cards = [];
+
+  void _addCard() {
+    setState(() {
+      if (_cards.length >= 6) {
+        _showDialog("Error", "This folder can only hold 6 cards.");
+      } else {
+        _cards.add("Card ${_cards.length + 1}");
+        if (_cards.length < 3) {
+          _showDialog("Warning", "You need at least 3 cards in this folder.");
+        }
+      }
+    });
+  }
+
+  void _showDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: <Widget>[
+            TextButton(
+              child: Text("OK"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('$folderName Cards'),
+        title: Text('${widget.folderName} Cards'),
       ),
       body: GridView.builder(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
         ),
-        itemCount: 10, 
+        itemCount: _cards.length,
         itemBuilder: (context, index) {
           return Card(
             child: GridTile(
@@ -102,6 +142,7 @@ class CardsScreen extends StatelessWidget {
                     ),
                   ],
                   onSelected: (value) {
+                    // Handle menu actions
                   },
                 ),
               ),
